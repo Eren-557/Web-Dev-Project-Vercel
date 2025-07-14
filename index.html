@@ -3,75 +3,765 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Windows 11</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <title>School Simulator - Staff Room</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: Arial, sans-serif;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        #interactionPrompt {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            z-index: 200;
+            text-align: center;
+        }
+        #questionModal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            display: none;
+            z-index: 300;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .question-container {
+            margin-bottom: 20px;
+        }
+        .question-text {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .option {
+            margin: 8px 0;
+            padding: 12px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        .option:hover {
+            background: #e0e0e0;
+            border-color: #007bff;
+        }
+        .option.selected {
+            background: #007bff;
+            color: white;
+            border-color: #0056b3;
+        }
+        .option.correct {
+            background: #28a745;
+            color: white;
+            border-color: #1e7e34;
+        }
+        .option.incorrect {
+            background: #dc3545;
+            color: white;
+            border-color: #bd2130;
+        }
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        #score {
+            font-size: 20px;
+            font-weight: bold;
+            color: #28a745;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+            font-size: 12px;
+        }
+        #loadingMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-
-        <div class="startmenu">
-            <img src="startmenu.PNG">
+    <div id="loadingMessage">Loading Three.js School Simulator...</div>
+    
+    <div id="gameContainer">
+        <div id="ui">
+            <h3>Staff Room Simulator</h3>
+            <p>Total Score: <span id="currentScore">0</span></p>
+            <p>Near Teacher: <span id="currentTeacher">None</span></p>
+        </div>
+        
+        <div id="instructions">
+            <p><strong>Controls:</strong></p>
+            <p>WASD: Move around</p>
+            <p>← → Arrow Keys: Look left/right</p>
+            <p>E: Talk to nearby teacher</p>
         </div>
 
-        <div class="taskbar">
-            <img class="left" src="icons.PNG">
-            <img class="right" src="taskbarright.PNG">      
+        <div id="interactionPrompt">
+            <p>Press <strong>E</strong> to talk to <span id="teacherName"></span></p>
+            <p>Subject: <span id="teacherSubject"></span></p>
         </div>
 
-        <div class="icons">
-
-            <div class="box">
-                <img src="icon1.png" alt="">
-                <p>Chrome</p>
+        <div id="questionModal">
+            <div id="score"></div>
+            <div id="questionContainer">
+                <div class="question-text" id="questionText"></div>
+                <div id="optionsContainer"></div>
+                <div class="controls">
+                    <button id="submitAnswer">Submit Answer</button>
+                    <button id="nextQuestion" style="display: none;">Next Question</button>
+                    <button id="closeQuiz" style="display: none;">Close Quiz</button>
+                </div>
             </div>
-
-            <div class="box">
-                <img src="icon2.png" alt="">
-                <p>Control<br>Panel</p>
-            </div>
-
-            <div class="box">
-                <img src="icon3.png" alt="">
-                <p>Discord</p>
-            </div>
-            
-            <div class="box">
-                <img src="icon4.png" alt="">
-                <p>...Edge</p>
-            </div>
-
-
-            <div class="box">
-                <img src="icon5.png" alt="">
-                <p>Github</p>
-            </div>
-
-            <div class="box">
-                <img src="icon6.png" alt="">
-                <p>Notepad</p>
-            </div>
-
-            <div class="box">
-                <img src="icon9.png" alt="">
-                <p>Recycle..</p>
-            </div>
-            
-            <div class="box">
-                <img src="icon8.png" alt="">
-                <p>VLC Me..</p>
-            </div>
-
         </div>
-
-
-        <!-- <div class="icons_pop">
-            <img src="c_panl1.png" width="">
-        </div> -->
-
     </div>
 
+    <script>
+        // Wait for Three.js to load
+        if (typeof THREE === 'undefined') {
+            document.body.innerHTML = '<div style="color: white; text-align: center; margin-top: 50px;">Error: Three.js failed to load. Please refresh the page.</div>';
+        } else {
+            // Hide loading message
+            document.getElementById('loadingMessage').style.display = 'none';
+            
+            // Game variables
+            let scene, camera, renderer, player;
+            let teachers = [];
+            let currentTeacher = null;
+            let keys = {};
+            let currentQuestionIndex = 0;
+            let currentQuiz = [];
+            let score = 0;
+            let selectedAnswer = null;
+            let totalScore = 0;
 
-    <script src="script.js"></script>
+            // Teacher data
+            const teacherData = {
+                'Jacob Mathew': {
+                    subject: 'Accountancy',
+                    position: { x: -8, z: -8 },
+                    color: 0x4169E1,
+                    questions: [
+                        {
+                            question: "What is the primary purpose of financial statements?",
+                            options: ["To calculate tax liability", "To show financial position and performance", "To determine employee salaries", "To track inventory only"],
+                            correct: 1
+                        },
+                        {
+                            question: "Which principle states that expenses should be matched with revenues?",
+                            options: ["Matching principle", "Consistency principle", "Materiality principle", "Conservatism principle"],
+                            correct: 0
+                        },
+                        {
+                            question: "What does 'Debit' mean in accounting?",
+                            options: ["Decrease in assets", "Increase in liabilities", "Left side of account", "Right side of account"],
+                            correct: 2
+                        },
+                        {
+                            question: "Which account has a normal credit balance?",
+                            options: ["Assets", "Expenses", "Liabilities", "Drawings"],
+                            correct: 2
+                        },
+                        {
+                            question: "What is the accounting equation?",
+                            options: ["Assets = Liabilities + Equity", "Assets = Liabilities - Equity", "Assets + Liabilities = Equity", "Assets - Liabilities = Equity"],
+                            correct: 0
+                        },
+                        {
+                            question: "Depreciation represents:",
+                            options: ["Increase in asset value", "Decrease in asset value over time", "Sale of assets", "Purchase of new assets"],
+                            correct: 1
+                        },
+                        {
+                            question: "Which inventory method values at lower of cost or market price?",
+                            options: ["FIFO", "LIFO", "Weighted Average", "Lower of Cost or Market"],
+                            correct: 3
+                        },
+                        {
+                            question: "What is a trial balance?",
+                            options: ["Final accounts", "List of all account balances", "Profit calculation", "Cash flow statement"],
+                            correct: 1
+                        },
+                        {
+                            question: "Goodwill represents:",
+                            options: ["Physical assets", "Intangible asset", "Current liability", "Long-term debt"],
+                            correct: 1
+                        },
+                        {
+                            question: "Which document is prepared first in accounting?",
+                            options: ["Trial Balance", "Journal", "Ledger", "Balance Sheet"],
+                            correct: 1
+                        }
+                    ]
+                },
+                'Chanchal Sir': {
+                    subject: 'Business Studies',
+                    position: { x: 8, z: -8 },
+                    color: 0x32CD32,
+                    questions: [
+                        {
+                            question: "What is the primary objective of management?",
+                            options: ["Profit maximization only", "Achieving organizational goals efficiently", "Cost reduction", "Market expansion"],
+                            correct: 1
+                        },
+                        {
+                            question: "Which function involves setting objectives and planning?",
+                            options: ["Organizing", "Planning", "Directing", "Controlling"],
+                            correct: 1
+                        },
+                        {
+                            question: "Span of Control refers to:",
+                            options: ["Number of organizational levels", "Number of subordinates under a manager", "Control systems in place", "Authority delegation process"],
+                            correct: 1
+                        },
+                        {
+                            question: "Which leadership style balances people and production?",
+                            options: ["Autocratic", "Democratic", "Team management", "Laissez-faire"],
+                            correct: 2
+                        },
+                        {
+                            question: "First step in planning process:",
+                            options: ["Setting objectives", "Identifying alternatives", "Evaluation of alternatives", "Implementation"],
+                            correct: 0
+                        },
+                        {
+                            question: "Which principle emphasizes 'right person for right job'?",
+                            options: ["Unity of command", "Division of work", "Scalar chain", "Order"],
+                            correct: 1
+                        },
+                        {
+                            question: "Delegation means:",
+                            options: ["Giving orders to subordinates", "Sharing authority with subordinates", "Taking full responsibility", "Making all decisions"],
+                            correct: 1
+                        },
+                        {
+                            question: "Matrix organization structure has:",
+                            options: ["Single reporting relationships", "Dual reporting relationships", "No reporting relationships", "Multiple product lines"],
+                            correct: 1
+                        },
+                        {
+                            question: "Formal communication follows:",
+                            options: ["Flexible channels", "Official organizational channels", "Informal networks", "Rapid informal methods"],
+                            correct: 1
+                        },
+                        {
+                            question: "Maslow's theory focuses on:",
+                            options: ["Two-factor theory", "Hierarchy of needs", "Theory X and Y", "Expectancy theory"],
+                            correct: 1
+                        }
+                    ]
+                },
+                'Nilanjana': {
+                    subject: 'English',
+                    position: { x: -8, z: 8 },
+                    color: 0xFF69B4,
+                    questions: [
+                        {
+                            question: "Who wrote 'The Last Lesson'?",
+                            options: ["Alphonse Daudet", "Anees Jung", "Pearl S. Buck", "William Douglas"],
+                            correct: 0
+                        },
+                        {
+                            question: "Theme of 'Lost Spring' is:",
+                            options: ["Environmental education", "Child labor and poverty", "Technology advancement", "Cultural diversity"],
+                            correct: 1
+                        },
+                        {
+                            question: "In 'Deep Water', the author fears:",
+                            options: ["Heights", "Darkness", "Water/drowning", "Closed spaces"],
+                            correct: 2
+                        },
+                        {
+                            question: "Protagonist of 'The Rattrap' is:",
+                            options: ["The peddler", "The ironmaster", "Edla Willmansson", "The blacksmith"],
+                            correct: 0
+                        },
+                        {
+                            question: "'Keeping Quiet' suggests:",
+                            options: ["Complete silence", "Meditation only", "Introspection and peace", "Sleep and rest"],
+                            correct: 2
+                        },
+                        {
+                            question: "'A Thing of Beauty' is written by:",
+                            options: ["John Keats", "Robert Frost", "Pablo Neruda", "Adrienne Rich"],
+                            correct: 0
+                        },
+                        {
+                            question: "'A Roadside Stand' deals with:",
+                            options: ["Rural-urban economic divide", "Environmental pollution", "Educational problems", "Technological advancement"],
+                            correct: 0
+                        },
+                        {
+                            question: "In 'Aunt Jennifer's Tigers', tigers symbolize:",
+                            options: ["Fear and anxiety", "Strength and freedom", "Anger and violence", "Pride and arrogance"],
+                            correct: 1
+                        },
+                        {
+                            question: "'The Third Level' is set in:",
+                            options: ["London", "Paris", "New York", "Chicago"],
+                            correct: 2
+                        },
+                        {
+                            question: "'The Enemy' is written by:",
+                            options: ["Pearl S. Buck", "Anees Jung", "Alphonse Daudet", "William Douglas"],
+                            correct: 0
+                        }
+                    ]
+                },
+                'Shaquat': {
+                    subject: 'Economics',
+                    position: { x: 8, z: 8 },
+                    color: 0xFFD700,
+                    questions: [
+                        {
+                            question: "Central problem of economics is:",
+                            options: ["Inflation", "Unemployment", "Scarcity of resources", "Poverty"],
+                            correct: 2
+                        },
+                        {
+                            question: "PPC stands for:",
+                            options: ["Price Production Curve", "Production Possibility Curve", "Per Capita Consumption", "Public Private Corporation"],
+                            correct: 1
+                        },
+                        {
+                            question: "If demand increases and supply is constant, price will:",
+                            options: ["Increase", "Decrease", "Remain same", "Become zero"],
+                            correct: 0
+                        },
+                        {
+                            question: "Normal demand curve is:",
+                            options: ["Upward sloping", "Downward sloping", "Horizontal", "Vertical"],
+                            correct: 1
+                        },
+                        {
+                            question: "GDP measures:",
+                            options: ["Government spending only", "Total production in economy", "Per capita income", "Inflation rate"],
+                            correct: 1
+                        },
+                        {
+                            question: "Example of indirect tax:",
+                            options: ["Income tax", "Corporate tax", "GST/Sales tax", "Property tax"],
+                            correct: 2
+                        },
+                        {
+                            question: "Primary function of money:",
+                            options: ["Store of value", "Medium of exchange", "Unit of account", "All of the above"],
+                            correct: 3
+                        },
+                        {
+                            question: "Repo Rate is:",
+                            options: ["Commercial bank lending rate", "Rate at which RBI lends to banks", "Deposit rate for customers", "Foreign exchange rate"],
+                            correct: 1
+                        },
+                        {
+                            question: "Fiscal policy involves:",
+                            options: ["Monetary policy tools", "Government spending and taxation", "Foreign trade regulations", "Banking sector policies"],
+                            correct: 1
+                        },
+                        {
+                            question: "Inflation is caused by:",
+                            options: ["Decrease in money supply", "Increase in money supply", "Decrease in production", "Both increase in money supply and decrease in production"],
+                            correct: 3
+                        }
+                    ]
+                }
+            };
+
+            // Initialize game
+            function init() {
+                try {
+                    // Create scene
+                    scene = new THREE.Scene();
+                    scene.background = new THREE.Color(0x87CEEB);
+
+                    // Create camera
+                    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                    camera.position.set(0, 2, 5);
+
+                    // Create renderer
+                    renderer = new THREE.WebGLRenderer({ antialias: true });
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    renderer.shadowMap.enabled = true;
+                    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                    document.getElementById('gameContainer').appendChild(renderer.domElement);
+
+                    // Lighting
+                    const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                    scene.add(ambientLight);
+
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                    directionalLight.position.set(10, 10, 10);
+                    directionalLight.castShadow = true;
+                    directionalLight.shadow.mapSize.width = 2048;
+                    directionalLight.shadow.mapSize.height = 2048;
+                    scene.add(directionalLight);
+
+                    // Create room and teachers
+                    createRoom();
+                    createPlayer();
+                    createTeachers();
+                    setupControls();
+
+                    // Start animation loop
+                    animate();
+
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    document.getElementById('loadingMessage').innerHTML = 'Error initializing game: ' + error.message;
+                }
+            }
+
+            function createRoom() {
+                // Floor
+                const floorGeometry = new THREE.PlaneGeometry(30, 30);
+                const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+                floor.rotation.x = -Math.PI / 2;
+                floor.receiveShadow = true;
+                scene.add(floor);
+
+                // Walls
+                const wallHeight = 10;
+                const wallMaterial = new THREE.MeshLambertMaterial({ color: 0xDEB887 });
+                
+                // Create four walls
+                const walls = [
+                    { pos: [0, wallHeight/2, -15], rot: [0, 0, 0] }, // Front
+                    { pos: [0, wallHeight/2, 15], rot: [0, Math.PI, 0] }, // Back
+                    { pos: [-15, wallHeight/2, 0], rot: [0, Math.PI/2, 0] }, // Left
+                    { pos: [15, wallHeight/2, 0], rot: [0, -Math.PI/2, 0] } // Right
+                ];
+
+                walls.forEach(wall => {
+                    const wallMesh = new THREE.Mesh(new THREE.PlaneGeometry(30, wallHeight), wallMaterial);
+                    wallMesh.position.set(...wall.pos);
+                    wallMesh.rotation.set(...wall.rot);
+                    scene.add(wallMesh);
+                });
+
+                // Ceiling
+                const ceiling = new THREE.Mesh(
+                    new THREE.PlaneGeometry(30, 30), 
+                    new THREE.MeshLambertMaterial({ color: 0xFFFFF0 })
+                );
+                ceiling.position.y = wallHeight;
+                ceiling.rotation.x = Math.PI / 2;
+                scene.add(ceiling);
+
+                // Add desks
+                const deskGeometry = new THREE.BoxGeometry(3, 1, 2);
+                const deskMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+
+                Object.values(teacherData).forEach(teacher => {
+                    const desk = new THREE.Mesh(deskGeometry, deskMaterial);
+                    desk.position.set(teacher.position.x, 0.5, teacher.position.z);
+                    desk.castShadow = true;
+                    scene.add(desk);
+                });
+            }
+
+            function createPlayer() {
+                // Simple player representation
+                const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
+                const playerMaterial = new THREE.MeshLambertMaterial({ color: 0x0066CC });
+                player = new THREE.Mesh(playerGeometry, playerMaterial);
+                player.position.set(0, 1, 5);
+                player.castShadow = true;
+                scene.add(player);
+            }
+
+            function createTeachers() {
+                Object.entries(teacherData).forEach(([name, data]) => {
+                    // Create teacher mesh
+                    const teacherGeometry = new THREE.BoxGeometry(1, 2, 1);
+                    const teacherMaterial = new THREE.MeshLambertMaterial({ color: data.color });
+                    const teacher = new THREE.Mesh(teacherGeometry, teacherMaterial);
+                    teacher.position.set(data.position.x, 1, data.position.z);
+                    teacher.castShadow = true;
+                    teacher.userData = { name, subject: data.subject, questions: data.questions };
+                    
+                    teachers.push(teacher);
+                    scene.add(teacher);
+                });
+            }
+
+            function setupControls() {
+                // Keyboard events
+                document.addEventListener('keydown', (event) => {
+                    keys[event.code] = true;
+                    
+                    if (event.code === 'KeyE' && currentTeacher) {
+                        startQuiz(currentTeacher);
+                    }
+                });
+
+                document.addEventListener('keyup', (event) => {
+                    keys[event.code] = false;
+                });
+
+                // Window resize
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+
+                // Quiz controls
+                document.getElementById('submitAnswer').addEventListener('click', submitAnswer);
+                document.getElementById('nextQuestion').addEventListener('click', nextQuestion);
+                document.getElementById('closeQuiz').addEventListener('click', closeQuiz);
+            }
+
+            function updatePlayer() {
+                const moveSpeed = 0.1;
+                const rotSpeed = 0.02;
+
+                // Movement
+                if (keys['KeyW']) {
+                    player.position.z -= moveSpeed;
+                }
+                if (keys['KeyS']) {
+                    player.position.z += moveSpeed;
+                }
+                if (keys['KeyA']) {
+                    player.position.x -= moveSpeed;
+                }
+                if (keys['KeyD']) {
+                    player.position.x += moveSpeed;
+                }
+
+                // Rotation
+                if (keys['ArrowLeft']) {
+                    player.rotation.y += rotSpeed;
+                }
+                if (keys['ArrowRight']) {
+                    player.rotation.y -= rotSpeed;
+                }
+
+                // Boundary limits
+                player.position.x = Math.max(-14, Math.min(14, player.position.x));
+                player.position.z = Math.max(-14, Math.min(14, player.position.z));
+
+                // Update camera to follow player
+                camera.position.x = player.position.x;
+                camera.position.z = player.position.z;
+                camera.rotation.y = player.rotation.y;
+            }
+
+            function checkTeacherInteraction() {
+                let nearestTeacher = null;
+                let minDistance = Infinity;
+
+                teachers.forEach(teacher => {
+                    const distance = player.position.distanceTo(teacher.position);
+                    if (distance < 4 && distance < minDistance) {
+                        minDistance = distance;
+                        nearestTeacher = teacher;
+                    }
+                });
+
+                if (nearestTeacher !== currentTeacher) {
+                    currentTeacher = nearestTeacher;
+                    updateUI();
+                }
+            }
+
+            function updateUI() {
+                const prompt = document.getElementById('interactionPrompt');
+                const teacherNameSpan = document.getElementById('teacherName');
+                const teacherSubjectSpan = document.getElementById('teacherSubject');
+                const currentTeacherSpan = document.getElementById('currentTeacher');
+
+                if (currentTeacher) {
+                    teacherNameSpan.textContent = currentTeacher.userData.name;
+                    teacherSubjectSpan.textContent = currentTeacher.userData.subject;
+                    currentTeacherSpan.textContent = currentTeacher.userData.name;
+                    prompt.style.display = 'block';
+                } else {
+                    prompt.style.display = 'none';
+                    currentTeacherSpan.textContent = 'None';
+                }
+            }
+
+            function startQuiz(teacher) {
+                currentQuiz = [...teacher.userData.questions];
+                currentQuestionIndex = 0;
+                score = 0;
+                selectedAnswer = null;
+                document.getElementById('questionModal').style.display = 'block';
+                showQuestion();
+            }
+
+            function showQuestion() {
+                if (currentQuestionIndex >= currentQuiz.length) {
+                    showFinalScore();
+                    return;
+                }
+
+                const question = currentQuiz[currentQuestionIndex];
+                document.getElementById('questionText').textContent = `Question ${currentQuestionIndex + 1}/10: ${question.question}`;
+                
+                const optionsContainer = document.getElementById('optionsContainer');
+                optionsContainer.innerHTML = '';
+                
+                question.options.forEach((option, index) => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'option';
+                    optionDiv.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
+                    optionDiv.onclick = () => selectOption(index);
+                    optionsContainer.appendChild(optionDiv);
+                });
+
+                document.getElementById('submitAnswer').style.display = 'inline-block';
+                document.getElementById('nextQuestion').style.display = 'none';
+                document.getElementById('closeQuiz').style.display = 'none';
+                document.getElementById('score').textContent = `Score: ${score}/10`;
+                selectedAnswer = null;
+            }
+
+            function selectOption(index) {
+                const options = document.querySelectorAll('.option');
+                options.forEach(option => option.classList.remove('selected'));
+                options[index].classList.add('selected');
+                selectedAnswer = index;
+            }
+
+            function submitAnswer() {
+                if (selectedAnswer === null) {
+                    alert('Please select an answer!');
+                    return;
+                }
+
+                const question = currentQuiz[currentQuestionIndex];
+                const options = document.querySelectorAll('.option');
+                
+                options.forEach((option, index) => {
+                    if (index === question.correct) {
+                        option.classList.add('correct');
+                    } else if (index === selectedAnswer && index !== question.correct) {
+                        option.classList.add('incorrect');
+                    }
+                });
+
+                if (selectedAnswer === question.correct) {
+                    score++;
+                }
+
+                document.getElementById('submitAnswer').style.display = 'none';
+                document.getElementById('nextQuestion').style.display = 'inline-block';
+                document.getElementById('score').textContent = `Score: ${score}/10`;
+            }
+
+            function nextQuestion() {
+                currentQuestionIndex++;
+                showQuestion();
+            }
+
+            function showFinalScore() {
+                const percentage = Math.round((score / 10) * 100);
+                document.getElementById('questionContainer').innerHTML = `
+                    <h2>Quiz Complete!</h2>
+                    <p style="font-size: 24px; color: #28a745;">Final Score: ${score}/10</p>
+                    <p style="font-size: 20px;">Percentage: ${percentage}%</p>
+                    <p style="font-size: 16px; color: #666;">
+                        ${percentage >= 80 ? 'Excellent work!' : 
+                          percentage >= 60 ? 'Good job!' : 
+                          percentage >= 40 ? 'Keep practicing!' : 'Need more study!'}
+                    </p>
+                `;
+                
+                const closeButton = document.createElement('button');
+                closeButton.textContent = 'Close Quiz';
+                closeButton.onclick = closeQuiz;
+                document.getElementById('questionContainer').appendChild(closeButton);
+                
+                // Update total score
+                totalScore += score;
+                document.getElementById('currentScore').textContent = totalScore;
+            }
+
+            function closeQuiz() {
+                document.getElementById('questionModal').style.display = 'none';
+                currentTeacher = null;
+                updateUI();
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                updatePlayer();
+                checkTeacherInteraction();
+                
+                renderer.render(scene, camera);
+            }
+
+            // Start the game
+            init();
+        }
+    </script>
 </body>
 </html>
