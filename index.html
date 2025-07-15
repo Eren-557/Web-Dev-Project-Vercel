@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School Simulator - Staff Room</title>
+    <title>Realistic School Staff Room - Quiz Simulator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body {
@@ -11,7 +11,7 @@
             padding: 0;
             overflow: hidden;
             background: #000;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         #gameContainer {
             position: relative;
@@ -24,10 +24,11 @@
             left: 10px;
             color: white;
             z-index: 100;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
             font-size: 14px;
+            backdrop-filter: blur(10px);
         }
         #interactionPrompt {
             position: absolute;
@@ -35,12 +36,30 @@
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 25px;
+            border-radius: 15px;
             display: none;
             z-index: 200;
             text-align: center;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        #chapterSelection {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            display: none;
+            z-index: 250;
+            max-width: 600px;
+            width: 90%;
+            max-height: 70vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
         }
         #questionModal {
             position: absolute;
@@ -56,6 +75,32 @@
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        .chapter-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .chapter-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            text-align: center;
+        }
+        .chapter-item:hover {
+            background: #e9ecef;
+            border-color: #007bff;
+            transform: translateY(-2px);
+        }
+        .chapter-item.selected {
+            background: #007bff;
+            color: white;
+            border-color: #0056b3;
         }
         .question-container {
             margin-bottom: 20px;
@@ -107,9 +152,11 @@
             cursor: pointer;
             margin: 5px;
             font-size: 16px;
+            transition: all 0.3s;
         }
         button:hover {
             background: #0056b3;
+            transform: translateY(-2px);
         }
         button:disabled {
             background: #6c757d;
@@ -127,11 +174,12 @@
             bottom: 10px;
             left: 10px;
             color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
             z-index: 100;
             font-size: 12px;
+            backdrop-filter: blur(10px);
         }
         #loadingMessage {
             position: absolute;
@@ -142,28 +190,87 @@
             font-size: 24px;
             z-index: 1000;
         }
+        .performance-feedback {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .feedback-excellent {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        .feedback-good {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+        .feedback-needs-improvement {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeeba;
+        }
+        .feedback-poor {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        .teacher-reaction {
+            font-size: 18px;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+        .atmospheric-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
-    <div id="loadingMessage">Loading Three.js School Simulator...</div>
+    <div id="loadingMessage">Loading Realistic Staff Room...</div>
+    <div class="atmospheric-effect"></div>
     
     <div id="gameContainer">
         <div id="ui">
-            <h3>Staff Room Simulator</h3>
-            <p>Total Score: <span id="currentScore">0</span></p>
-            <p>Near Teacher: <span id="currentTeacher">None</span></p>
+            <h3>🏫 Staff Room - Quiz Center</h3>
+            <p>📊 Total Score: <span id="currentScore">0</span></p>
+            <p>👨‍🏫 Near Teacher: <span id="currentTeacher">None</span></p>
+            <p>🎯 Quizzes Taken: <span id="quizzesTaken">0</span></p>
         </div>
         
         <div id="instructions">
-            <p><strong>Controls:</strong></p>
-            <p>WASD: Move around</p>
-            <p>← → Arrow Keys: Look left/right</p>
-            <p>E: Talk to nearby teacher</p>
+            <p><strong>🎮 Controls:</strong></p>
+            <p>WASD: Move around the staff room</p>
+            <p>← → Arrow Keys: Look around</p>
+            <p>E: Interact with teacher</p>
+            <p>Mouse: Click and drag to look around</p>
         </div>
 
         <div id="interactionPrompt">
-            <p>Press <strong>E</strong> to talk to <span id="teacherName"></span></p>
-            <p>Subject: <span id="teacherSubject"></span></p>
+            <h3>🤝 Interact with Teacher</h3>
+            <p>Teacher: <strong><span id="teacherName"></span></strong></p>
+            <p>Subject: <strong><span id="teacherSubject"></span></strong></p>
+            <p>Press <strong>E</strong> to select quiz chapter</p>
+        </div>
+
+        <div id="chapterSelection">
+            <h2>📚 Select Chapter for Quiz</h2>
+            <p>Choose a chapter from <strong><span id="selectedTeacherName"></span></strong>'s syllabus:</p>
+            <div class="chapter-list" id="chapterList"></div>
+            <div class="controls">
+                <button id="startChapterQuiz">Start Quiz</button>
+                <button id="cancelChapterSelection">Cancel</button>
+            </div>
         </div>
 
         <div id="questionModal">
@@ -198,236 +305,365 @@
             let score = 0;
             let selectedAnswer = null;
             let totalScore = 0;
+            let quizzesTaken = 0;
+            let selectedChapter = null;
+                                // Create orbit controls alternative
+                    let cameraRotation = { x: 0, y: 0 };
+                    let isMouseDown = false;
 
-            // Teacher data
+            // Enhanced teacher data with chapters
             const teacherData = {
                 'Jacob Mathew': {
                     subject: 'Accountancy',
-                    position: { x: -8, z: -8 },
+                    position: { x: -10, z: -10 },
                     color: 0x4169E1,
-                    questions: [
-                        {
-                            question: "What is the primary purpose of financial statements?",
-                            options: ["To calculate tax liability", "To show financial position and performance", "To determine employee salaries", "To track inventory only"],
-                            correct: 1
-                        },
-                        {
-                            question: "Which principle states that expenses should be matched with revenues?",
-                            options: ["Matching principle", "Consistency principle", "Materiality principle", "Conservatism principle"],
-                            correct: 0
-                        },
-                        {
-                            question: "What does 'Debit' mean in accounting?",
-                            options: ["Decrease in assets", "Increase in liabilities", "Left side of account", "Right side of account"],
-                            correct: 2
-                        },
-                        {
-                            question: "Which account has a normal credit balance?",
-                            options: ["Assets", "Expenses", "Liabilities", "Drawings"],
-                            correct: 2
-                        },
-                        {
-                            question: "What is the accounting equation?",
-                            options: ["Assets = Liabilities + Equity", "Assets = Liabilities - Equity", "Assets + Liabilities = Equity", "Assets - Liabilities = Equity"],
-                            correct: 0
-                        },
-                        {
-                            question: "Depreciation represents:",
-                            options: ["Increase in asset value", "Decrease in asset value over time", "Sale of assets", "Purchase of new assets"],
-                            correct: 1
-                        },
-                        {
-                            question: "Which inventory method values at lower of cost or market price?",
-                            options: ["FIFO", "LIFO", "Weighted Average", "Lower of Cost or Market"],
-                            correct: 3
-                        },
-                        {
-                            question: "What is a trial balance?",
-                            options: ["Final accounts", "List of all account balances", "Profit calculation", "Cash flow statement"],
-                            correct: 1
-                        },
-                        {
-                            question: "Goodwill represents:",
-                            options: ["Physical assets", "Intangible asset", "Current liability", "Long-term debt"],
-                            correct: 1
-                        },
-                        {
-                            question: "Which document is prepared first in accounting?",
-                            options: ["Trial Balance", "Journal", "Ledger", "Balance Sheet"],
-                            correct: 1
-                        }
-                    ]
+                    chapters: {
+                        'Financial Statements': [
+                            {
+                                question: "What is the primary purpose of financial statements?",
+                                options: ["To calculate tax liability", "To show financial position and performance", "To determine employee salaries", "To track inventory only"],
+                                correct: 1
+                            },
+                            {
+                                question: "Which statement shows the financial position at a specific date?",
+                                options: ["Income Statement", "Balance Sheet", "Cash Flow Statement", "Statement of Changes in Equity"],
+                                correct: 1
+                            },
+                            {
+                                question: "Current assets are expected to be converted to cash within:",
+                                options: ["6 months", "1 year", "2 years", "5 years"],
+                                correct: 1
+                            },
+                            {
+                                question: "Which is NOT a component of shareholders' equity?",
+                                options: ["Share Capital", "Retained Earnings", "Accounts Payable", "Reserves"],
+                                correct: 2
+                            },
+                            {
+                                question: "Gross profit is calculated as:",
+                                options: ["Revenue - Total Expenses", "Revenue - Cost of Goods Sold", "Revenue - Operating Expenses", "Revenue - Interest"],
+                                correct: 1
+                            }
+                        ],
+                        'Accounting Principles': [
+                            {
+                                question: "The matching principle states that:",
+                                options: ["Assets = Liabilities + Equity", "Expenses should be matched with revenues", "Debits must equal credits", "Cash receipts equal cash payments"],
+                                correct: 1
+                            },
+                            {
+                                question: "The conservatism principle suggests:",
+                                options: ["Record highest possible values", "Record lowest possible values", "Be cautious in recording gains", "Ignore uncertain transactions"],
+                                correct: 2
+                            },
+                            {
+                                question: "Revenue recognition principle states revenue should be recognized when:",
+                                options: ["Cash is received", "Sale is made", "Earned and realizable", "Customer pays"],
+                                correct: 2
+                            },
+                            {
+                                question: "The materiality principle relates to:",
+                                options: ["Physical assets only", "Significance of financial information", "Raw materials", "Equipment purchases"],
+                                correct: 1
+                            },
+                            {
+                                question: "Going concern assumption means:",
+                                options: ["Business will continue operating", "Business will close soon", "Business is profitable", "Business has no debts"],
+                                correct: 0
+                            }
+                        ],
+                        'Double Entry System': [
+                            {
+                                question: "In double entry system, every transaction affects:",
+                                options: ["One account", "Two accounts", "At least two accounts", "All accounts"],
+                                correct: 2
+                            },
+                            {
+                                question: "Debit side is the:",
+                                options: ["Right side", "Left side", "Top side", "Bottom side"],
+                                correct: 1
+                            },
+                            {
+                                question: "Which account has a normal debit balance?",
+                                options: ["Liabilities", "Assets", "Revenue", "Capital"],
+                                correct: 1
+                            },
+                            {
+                                question: "The accounting equation is:",
+                                options: ["Assets = Liabilities + Equity", "Assets = Liabilities - Equity", "Assets + Liabilities = Equity", "Assets - Liabilities = Equity"],
+                                correct: 0
+                            },
+                            {
+                                question: "When assets increase, they are:",
+                                options: ["Credited", "Debited", "Balanced", "Ignored"],
+                                correct: 1
+                            }
+                        ]
+                    }
                 },
                 'Chanchal Sir': {
                     subject: 'Business Studies',
-                    position: { x: 8, z: -8 },
+                    position: { x: 10, z: -10 },
                     color: 0x32CD32,
-                    questions: [
-                        {
-                            question: "What is the primary objective of management?",
-                            options: ["Profit maximization only", "Achieving organizational goals efficiently", "Cost reduction", "Market expansion"],
-                            correct: 1
-                        },
-                        {
-                            question: "Which function involves setting objectives and planning?",
-                            options: ["Organizing", "Planning", "Directing", "Controlling"],
-                            correct: 1
-                        },
-                        {
-                            question: "Span of Control refers to:",
-                            options: ["Number of organizational levels", "Number of subordinates under a manager", "Control systems in place", "Authority delegation process"],
-                            correct: 1
-                        },
-                        {
-                            question: "Which leadership style balances people and production?",
-                            options: ["Autocratic", "Democratic", "Team management", "Laissez-faire"],
-                            correct: 2
-                        },
-                        {
-                            question: "First step in planning process:",
-                            options: ["Setting objectives", "Identifying alternatives", "Evaluation of alternatives", "Implementation"],
-                            correct: 0
-                        },
-                        {
-                            question: "Which principle emphasizes 'right person for right job'?",
-                            options: ["Unity of command", "Division of work", "Scalar chain", "Order"],
-                            correct: 1
-                        },
-                        {
-                            question: "Delegation means:",
-                            options: ["Giving orders to subordinates", "Sharing authority with subordinates", "Taking full responsibility", "Making all decisions"],
-                            correct: 1
-                        },
-                        {
-                            question: "Matrix organization structure has:",
-                            options: ["Single reporting relationships", "Dual reporting relationships", "No reporting relationships", "Multiple product lines"],
-                            correct: 1
-                        },
-                        {
-                            question: "Formal communication follows:",
-                            options: ["Flexible channels", "Official organizational channels", "Informal networks", "Rapid informal methods"],
-                            correct: 1
-                        },
-                        {
-                            question: "Maslow's theory focuses on:",
-                            options: ["Two-factor theory", "Hierarchy of needs", "Theory X and Y", "Expectancy theory"],
-                            correct: 1
-                        }
-                    ]
+                    chapters: {
+                        'Management Functions': [
+                            {
+                                question: "Which is the first function of management?",
+                                options: ["Organizing", "Planning", "Directing", "Controlling"],
+                                correct: 1
+                            },
+                            {
+                                question: "Organizing involves:",
+                                options: ["Setting objectives", "Arranging resources", "Motivating employees", "Measuring performance"],
+                                correct: 1
+                            },
+                            {
+                                question: "Directing includes:",
+                                options: ["Planning only", "Leadership and motivation", "Organizing resources", "Setting budgets"],
+                                correct: 1
+                            },
+                            {
+                                question: "Controlling involves:",
+                                options: ["Setting standards and measuring performance", "Hiring employees", "Buying equipment", "Selling products"],
+                                correct: 0
+                            },
+                            {
+                                question: "Coordination is:",
+                                options: ["A separate function", "The essence of management", "Only for large organizations", "Unnecessary in small firms"],
+                                correct: 1
+                            }
+                        ],
+                        'Principles of Management': [
+                            {
+                                question: "Unity of command means:",
+                                options: ["One manager for all", "One subordinate should receive orders from one superior", "All commands are similar", "Commands should be in writing"],
+                                correct: 1
+                            },
+                            {
+                                question: "Division of work leads to:",
+                                options: ["Confusion", "Specialization", "Conflict", "Delays"],
+                                correct: 1
+                            },
+                            {
+                                question: "Scalar chain refers to:",
+                                options: ["Chain of command", "Production line", "Supply chain", "Value chain"],
+                                correct: 0
+                            },
+                            {
+                                question: "Equity means:",
+                                options: ["Equal pay for all", "Kindliness and justice", "Profit sharing", "Equal working hours"],
+                                correct: 1
+                            },
+                            {
+                                question: "Esprit de corps promotes:",
+                                options: ["Individual achievement", "Team spirit", "Competition", "Hierarchy"],
+                                correct: 1
+                            }
+                        ],
+                        'Organizational Structure': [
+                            {
+                                question: "Span of control refers to:",
+                                options: ["Number of organizational levels", "Number of subordinates under a manager", "Control systems", "Authority delegation"],
+                                correct: 1
+                            },
+                            {
+                                question: "Matrix organization has:",
+                                options: ["Single reporting", "Dual reporting", "No reporting", "Multiple products only"],
+                                correct: 1
+                            },
+                            {
+                                question: "Decentralization means:",
+                                options: ["Concentrating authority", "Distributing authority", "Eliminating authority", "Reducing authority"],
+                                correct: 1
+                            },
+                            {
+                                question: "Formal organization is:",
+                                options: ["Officially established", "Informally created", "Temporary", "Flexible"],
+                                correct: 0
+                            },
+                            {
+                                question: "Delegation involves:",
+                                options: ["Giving up authority", "Sharing authority", "Eliminating authority", "Concentrating authority"],
+                                correct: 1
+                            }
+                        ]
+                    }
                 },
-                'Nilanjana': {
+                'Nilanjana Ma\'am': {
                     subject: 'English',
-                    position: { x: -8, z: 8 },
+                    position: { x: -10, z: 10 },
                     color: 0xFF69B4,
-                    questions: [
-                        {
-                            question: "Who wrote 'The Last Lesson'?",
-                            options: ["Alphonse Daudet", "Anees Jung", "Pearl S. Buck", "William Douglas"],
-                            correct: 0
-                        },
-                        {
-                            question: "Theme of 'Lost Spring' is:",
-                            options: ["Environmental education", "Child labor and poverty", "Technology advancement", "Cultural diversity"],
-                            correct: 1
-                        },
-                        {
-                            question: "In 'Deep Water', the author fears:",
-                            options: ["Heights", "Darkness", "Water/drowning", "Closed spaces"],
-                            correct: 2
-                        },
-                        {
-                            question: "Protagonist of 'The Rattrap' is:",
-                            options: ["The peddler", "The ironmaster", "Edla Willmansson", "The blacksmith"],
-                            correct: 0
-                        },
-                        {
-                            question: "'Keeping Quiet' suggests:",
-                            options: ["Complete silence", "Meditation only", "Introspection and peace", "Sleep and rest"],
-                            correct: 2
-                        },
-                        {
-                            question: "'A Thing of Beauty' is written by:",
-                            options: ["John Keats", "Robert Frost", "Pablo Neruda", "Adrienne Rich"],
-                            correct: 0
-                        },
-                        {
-                            question: "'A Roadside Stand' deals with:",
-                            options: ["Rural-urban economic divide", "Environmental pollution", "Educational problems", "Technological advancement"],
-                            correct: 0
-                        },
-                        {
-                            question: "In 'Aunt Jennifer's Tigers', tigers symbolize:",
-                            options: ["Fear and anxiety", "Strength and freedom", "Anger and violence", "Pride and arrogance"],
-                            correct: 1
-                        },
-                        {
-                            question: "'The Third Level' is set in:",
-                            options: ["London", "Paris", "New York", "Chicago"],
-                            correct: 2
-                        },
-                        {
-                            question: "'The Enemy' is written by:",
-                            options: ["Pearl S. Buck", "Anees Jung", "Alphonse Daudet", "William Douglas"],
-                            correct: 0
-                        }
-                    ]
+                    chapters: {
+                        'Prose - Flamingo': [
+                            {
+                                question: "Who wrote 'The Last Lesson'?",
+                                options: ["Alphonse Daudet", "Anees Jung", "Pearl S. Buck", "William Douglas"],
+                                correct: 0
+                            },
+                            {
+                                question: "'Lost Spring' deals with:",
+                                options: ["Environmental issues", "Child labor and poverty", "Technology", "Cultural diversity"],
+                                correct: 1
+                            },
+                            {
+                                question: "In 'Deep Water', what does the author overcome?",
+                                options: ["Fear of heights", "Fear of darkness", "Fear of water", "Fear of crowds"],
+                                correct: 2
+                            },
+                            {
+                                question: "'The Rattrap' is set in:",
+                                options: ["France", "India", "Sweden", "England"],
+                                correct: 2
+                            },
+                            {
+                                question: "The theme of 'Indigo' is:",
+                                options: ["Industrial revolution", "Satyagraha movement", "World War", "Partition"],
+                                correct: 1
+                            }
+                        ],
+                        'Poetry - Flamingo': [
+                            {
+                                question: "'My Mother at Sixty-six' is about:",
+                                options: ["Celebration", "Aging and mortality", "Success", "Travel"],
+                                correct: 1
+                            },
+                            {
+                                question: "'Keeping Quiet' suggests:",
+                                options: ["Complete silence", "Introspection and peace", "Sleep", "Meditation only"],
+                                correct: 1
+                            },
+                            {
+                                question: "'A Thing of Beauty' is written by:",
+                                options: ["John Keats", "Robert Frost", "Pablo Neruda", "Adrienne Rich"],
+                                correct: 0
+                            },
+                            {
+                                question: "'A Roadside Stand' criticizes:",
+                                options: ["Urban life", "Rural-urban divide", "Technology", "Education"],
+                                correct: 1
+                            },
+                            {
+                                question: "In 'Aunt Jennifer's Tigers', tigers symbolize:",
+                                options: ["Fear", "Strength and freedom", "Anger", "Pride"],
+                                correct: 1
+                            }
+                        ],
+                        'Vistas - Short Stories': [
+                            {
+                                question: "'The Third Level' is about:",
+                                options: ["Reality", "Fantasy and escapism", "Adventure", "Mystery"],
+                                correct: 1
+                            },
+                            {
+                                question: "'The Tiger King' satirizes:",
+                                options: ["Democracy", "Monarchy and fate", "Education", "Technology"],
+                                correct: 1
+                            },
+                            {
+                                question: "In 'Journey to the End of the Earth', the narrator visits:",
+                                options: ["Arctic", "Antarctica", "Sahara", "Amazon"],
+                                correct: 1
+                            },
+                            {
+                                question: "'The Enemy' deals with:",
+                                options: ["War", "Humanity vs nationalism", "Love", "Friendship"],
+                                correct: 1
+                            },
+                            {
+                                question: "'Should Wizard Hit Mommy' explores:",
+                                options: ["Magic", "Parent-child relationship", "School life", "Friendship"],
+                                correct: 1
+                            }
+                        ]
+                    }
                 },
-                'Shaquat': {
+                'Shaquat Sir': {
                     subject: 'Economics',
-                    position: { x: 8, z: 8 },
+                    position: { x: 10, z: 10 },
                     color: 0xFFD700,
-                    questions: [
-                        {
-                            question: "Central problem of economics is:",
-                            options: ["Inflation", "Unemployment", "Scarcity of resources", "Poverty"],
-                            correct: 2
-                        },
-                        {
-                            question: "PPC stands for:",
-                            options: ["Price Production Curve", "Production Possibility Curve", "Per Capita Consumption", "Public Private Corporation"],
-                            correct: 1
-                        },
-                        {
-                            question: "If demand increases and supply is constant, price will:",
-                            options: ["Increase", "Decrease", "Remain same", "Become zero"],
-                            correct: 0
-                        },
-                        {
-                            question: "Normal demand curve is:",
-                            options: ["Upward sloping", "Downward sloping", "Horizontal", "Vertical"],
-                            correct: 1
-                        },
-                        {
-                            question: "GDP measures:",
-                            options: ["Government spending only", "Total production in economy", "Per capita income", "Inflation rate"],
-                            correct: 1
-                        },
-                        {
-                            question: "Example of indirect tax:",
-                            options: ["Income tax", "Corporate tax", "GST/Sales tax", "Property tax"],
-                            correct: 2
-                        },
-                        {
-                            question: "Primary function of money:",
-                            options: ["Store of value", "Medium of exchange", "Unit of account", "All of the above"],
-                            correct: 3
-                        },
-                        {
-                            question: "Repo Rate is:",
-                            options: ["Commercial bank lending rate", "Rate at which RBI lends to banks", "Deposit rate for customers", "Foreign exchange rate"],
-                            correct: 1
-                        },
-                        {
-                            question: "Fiscal policy involves:",
-                            options: ["Monetary policy tools", "Government spending and taxation", "Foreign trade regulations", "Banking sector policies"],
-                            correct: 1
-                        },
-                        {
-                            question: "Inflation is caused by:",
-                            options: ["Decrease in money supply", "Increase in money supply", "Decrease in production", "Both increase in money supply and decrease in production"],
-                            correct: 3
-                        }
-                    ]
+                    chapters: {
+                        'Microeconomics Basics': [
+                            {
+                                question: "Central problem of economics is:",
+                                options: ["Inflation", "Unemployment", "Scarcity", "Poverty"],
+                                correct: 2
+                            },
+                            {
+                                question: "Opportunity cost refers to:",
+                                options: ["Money cost", "Best alternative foregone", "Total cost", "Variable cost"],
+                                correct: 1
+                            },
+                            {
+                                question: "Production Possibility Curve shows:",
+                                options: ["Demand and supply", "Maximum production combinations", "Price changes", "Market structure"],
+                                correct: 1
+                            },
+                            {
+                                question: "When PPC shifts outward, it indicates:",
+                                options: ["Economic decline", "Economic growth", "Inflation", "Recession"],
+                                correct: 1
+                            },
+                            {
+                                question: "Marginal utility is:",
+                                options: ["Total satisfaction", "Additional satisfaction", "Average satisfaction", "Maximum satisfaction"],
+                                correct: 1
+                            }
+                        ],
+                        'Demand and Supply': [
+                            {
+                                question: "Law of demand states that:",
+                                options: ["Price and quantity demanded are directly related", "Price and quantity demanded are inversely related", "Price remains constant", "Quantity remains constant"],
+                                correct: 1
+                            },
+                            {
+                                question: "Normal demand curve is:",
+                                options: ["Upward sloping", "Downward sloping", "Horizontal", "Vertical"],
+                                correct: 1
+                            },
+                            {
+                                question: "Increase in demand means:",
+                                options: ["Movement along curve", "Shift of curve to right", "Shift of curve to left", "No change in curve"],
+                                correct: 1
+                            },
+                            {
+                                question: "Price elasticity of demand measures:",
+                                options: ["Change in supply", "Responsiveness of quantity demanded to price change", "Change in income", "Change in preferences"],
+                                correct: 1
+                            },
+                            {
+                                question: "Equilibrium price is determined where:",
+                                options: ["Demand exceeds supply", "Supply exceeds demand", "Demand equals supply", "Both are zero"],
+                                correct: 2
+                            }
+                        ],
+                        'Macroeconomics': [
+                            {
+                                question: "GDP measures:",
+                                options: ["Government spending", "Total production in economy", "Per capita income", "Inflation rate"],
+                                correct: 1
+                            },
+                            {
+                                question: "Nominal GDP is measured at:",
+                                options: ["Constant prices", "Current prices", "Average prices", "Future prices"],
+                                correct: 1
+                            },
+                            {
+                                question: "Fiscal policy involves:",
+                                options: ["Money supply", "Government spending and taxation", "Interest rates", "Exchange rates"],
+                                correct: 1
+                            },
+                            {
+                                question: "Monetary policy is implemented by:",
+                                options: ["Government", "Central Bank", "Parliament", "Private banks"],
+                                correct: 1
+                            },
+                            {
+                                question: "Inflation is measured by:",
+                                options: ["GDP deflator", "Consumer Price Index", "Wholesale Price Index", "All of the above"],
+                                correct: 3
+                            }
+                        ]
+                    }
                 }
             };
 
@@ -437,6 +673,7 @@
                     // Create scene
                     scene = new THREE.Scene();
                     scene.background = new THREE.Color(0x87CEEB);
+                    scene.fog = new THREE.Fog(0x87CEEB, 50, 200);
 
                     // Create camera
                     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -447,21 +684,47 @@
                     renderer.setSize(window.innerWidth, window.innerHeight);
                     renderer.shadowMap.enabled = true;
                     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                    renderer.outputEncoding = THREE.sRGBEncoding;
                     document.getElementById('gameContainer').appendChild(renderer.domElement);
 
-                    // Lighting
-                    const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                    // Enhanced lighting
+                    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
                     scene.add(ambientLight);
 
                     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                    directionalLight.position.set(10, 10, 10);
+                    directionalLight.position.set(20, 20, 20);
                     directionalLight.castShadow = true;
-                    directionalLight.shadow.mapSize.width = 2048;
-                    directionalLight.shadow.mapSize.height = 2048;
+                    directionalLight.shadow.mapSize.width = 4096;
+                    directionalLight.shadow.mapSize.height = 4096;
+                    directionalLight.shadow.camera.near = 0.1;
+                    directionalLight.shadow.camera.far = 100;
+                    directionalLight.shadow.camera.left = -50;
+                    directionalLight.shadow.camera.right = 50;
+                    directionalLight.shadow.camera.top = 50;
+                    directionalLight.shadow.camera.bottom = -50;
                     scene.add(directionalLight);
 
+                    // Add warm overhead lighting
+                    const ceilingLight = new THREE.PointLight(0xfff8dc, 0.6, 30);
+                    ceilingLight.position.set(0, 9, 0);
+                    scene.add(ceilingLight);
+
+                    // Add corner lights
+                    const cornerLights = [
+                        { pos: [-12, 8, -12], color: 0xfff8dc },
+                        { pos: [12, 8, -12], color: 0xfff8dc },
+                        { pos: [-12, 8, 12], color: 0xfff8dc },
+                        { pos: [12, 8, 12], color: 0xfff8dc }
+                    ];
+
+                    cornerLights.forEach(light => {
+                        const pointLight = new THREE.PointLight(light.color, 0.4, 20);
+                        pointLight.position.set(...light.pos);
+                        scene.add(pointLight);
+                    });
+
                     // Create room and teachers
-                    createRoom();
+                    createRealisticRoom();
                     createPlayer();
                     createTeachers();
                     setupControls();
@@ -475,95 +738,407 @@
                 }
             }
 
-            function createRoom() {
-                // Floor
-                const floorGeometry = new THREE.PlaneGeometry(30, 30);
-                const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            function createRealisticRoom() {
+                const roomSize = 35;
+                const wallHeight = 12;
+
+                // Enhanced floor with realistic texture
+                const floorGeometry = new THREE.PlaneGeometry(roomSize, roomSize, 50, 50);
+                const floorMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0xF5F5DC,
+                    transparent: true,
+                    opacity: 0.9
+                });
                 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
                 floor.rotation.x = -Math.PI / 2;
                 floor.receiveShadow = true;
+                
+                // Add floor tiles pattern
+                const tileSize = 2;
+                for (let x = -roomSize/2; x < roomSize/2; x += tileSize) {
+                    for (let z = -roomSize/2; z < roomSize/2; z += tileSize) {
+                        const tile = new THREE.Mesh(
+                            new THREE.PlaneGeometry(tileSize - 0.1, tileSize - 0.1),
+                            new THREE.MeshLambertMaterial({ 
+                                color: Math.random() > 0.5 ? 0xF8F8FF : 0xF0F0F0 
+                            })
+                        );
+                        tile.rotation.x = -Math.PI / 2;
+                        tile.position.set(x + tileSize/2, 0.01, z + tileSize/2);
+                        scene.add(tile);
+                    }
+                }
                 scene.add(floor);
 
-                // Walls
-                const wallHeight = 10;
-                const wallMaterial = new THREE.MeshLambertMaterial({ color: 0xDEB887 });
+                // Enhanced walls with realistic materials
+                const wallMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0xFAF0E6,
+                    transparent: true,
+                    opacity: 0.95
+                });
                 
-                // Create four walls
+                // Create four walls with windows and doors
                 const walls = [
-                    { pos: [0, wallHeight/2, -15], rot: [0, 0, 0] }, // Front
-                    { pos: [0, wallHeight/2, 15], rot: [0, Math.PI, 0] }, // Back
-                    { pos: [-15, wallHeight/2, 0], rot: [0, Math.PI/2, 0] }, // Left
-                    { pos: [15, wallHeight/2, 0], rot: [0, -Math.PI/2, 0] } // Right
+                    { pos: [0, wallHeight/2, -roomSize/2], rot: [0, 0, 0], hasWindow: true },
+                    { pos: [0, wallHeight/2, roomSize/2], rot: [0, Math.PI, 0], hasWindow: false },
+                    { pos: [-roomSize/2, wallHeight/2, 0], rot: [0, Math.PI/2, 0], hasWindow: true },
+                    { pos: [roomSize/2, wallHeight/2, 0], rot: [0, -Math.PI/2, 0], hasWindow: false }
                 ];
 
-                walls.forEach(wall => {
-                    const wallMesh = new THREE.Mesh(new THREE.PlaneGeometry(30, wallHeight), wallMaterial);
+                walls.forEach((wall, index) => {
+                    const wallMesh = new THREE.Mesh(
+                        new THREE.PlaneGeometry(roomSize, wallHeight), 
+                        wallMaterial
+                    );
                     wallMesh.position.set(...wall.pos);
                     wallMesh.rotation.set(...wall.rot);
+                    wallMesh.receiveShadow = true;
+                    wallMesh.castShadow = true;
                     scene.add(wallMesh);
+
+                    // Add windows to certain walls
+                    if (wall.hasWindow) {
+                        const windowGeometry = new THREE.PlaneGeometry(6, 4);
+                        const windowMaterial = new THREE.MeshLambertMaterial({ 
+                            color: 0x87CEEB, 
+                            transparent: true, 
+                            opacity: 0.7 
+                        });
+                        const window = new THREE.Mesh(windowGeometry, windowMaterial);
+                        window.position.copy(wallMesh.position);
+                        window.rotation.copy(wallMesh.rotation);
+                        window.position.y = wallHeight/2 + 1;
+                        scene.add(window);
+
+                        // Window frame
+                        const frameGeometry = new THREE.BoxGeometry(6.2, 4.2, 0.1);
+                        const frameMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                        const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+                        frame.position.copy(window.position);
+                        frame.position.z -= 0.05;
+                        scene.add(frame);
+                    }
                 });
 
-                // Ceiling
-                const ceiling = new THREE.Mesh(
-                    new THREE.PlaneGeometry(30, 30), 
-                    new THREE.MeshLambertMaterial({ color: 0xFFFFF0 })
-                );
-                ceiling.position.y = wallHeight;
+                // Enhanced ceiling with realistic texture
+                const ceilingGeometry = new THREE.PlaneGeometry(roomSize, roomSize);
+                const ceilingMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0xFFFFF0,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
                 ceiling.rotation.x = Math.PI / 2;
+                ceiling.position.y = wallHeight;
+                ceiling.receiveShadow = true;
                 scene.add(ceiling);
 
-                // Add desks
-                const deskGeometry = new THREE.BoxGeometry(3, 1, 2);
-                const deskMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-
-                Object.values(teacherData).forEach(teacher => {
-                    const desk = new THREE.Mesh(deskGeometry, deskMaterial);
-                    desk.position.set(teacher.position.x, 0.5, teacher.position.z);
-                    desk.castShadow = true;
-                    scene.add(desk);
+                // Add rotating animation to fans
+                scene.children.forEach(child => {
+                    if (child.userData && child.userData.isFan) {
+                        child.rotation.y += 0.1;
+                    }
                 });
+                
+                // Mark ceiling fans for animation
+                for (let i = 0; i < 4; i++) {
+                    const fan = createCeilingFan();
+                    fan.position.set(
+                        (i % 2 === 0 ? -8 : 8),
+                        wallHeight - 1,
+                        (i < 2 ? -8 : 8)
+                    );
+                    fan.userData = { isFan: true };
+                    scene.add(fan);
+                }
+
+                // Add realistic furniture
+                createStaffRoomFurniture();
+                createWhiteboards();
+                createBookShelves();
+                createOfficeChairs();
+                createNoticeBoard();
+            }
+
+            function createCeilingFan() {
+                const fanGroup = new THREE.Group();
+                
+                // Fan motor
+                const motorGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 8);
+                const motorMaterial = new THREE.MeshLambertMaterial({ color: 0x2F4F4F });
+                const motor = new THREE.Mesh(motorGeometry, motorMaterial);
+                fanGroup.add(motor);
+
+                // Fan blades
+                for (let i = 0; i < 4; i++) {
+                    const bladeGeometry = new THREE.BoxGeometry(2, 0.02, 0.3);
+                    const bladeMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                    const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
+                    blade.position.set(1, -0.1, 0);
+                    blade.rotation.y = (i * Math.PI) / 2;
+                    fanGroup.add(blade);
+                }
+
+                return fanGroup;
+            }
+
+            function createStaffRoomFurniture() {
+                // Large conference table
+                const tableGeometry = new THREE.BoxGeometry(8, 0.2, 4);
+                const tableMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                const table = new THREE.Mesh(tableGeometry, tableMaterial);
+                table.position.set(0, 1, 0);
+                table.castShadow = true;
+                table.receiveShadow = true;
+                scene.add(table);
+
+                // Table legs
+                for (let i = 0; i < 4; i++) {
+                    const legGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
+                    const legMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+                    const leg = new THREE.Mesh(legGeometry, legMaterial);
+                    leg.position.set(
+                        (i % 2 === 0 ? -3.5 : 3.5),
+                        0.5,
+                        (i < 2 ? -1.5 : 1.5)
+                    );
+                    leg.castShadow = true;
+                    scene.add(leg);
+                }
+
+                // Coffee machine
+                const coffeeGeometry = new THREE.BoxGeometry(0.8, 1.2, 0.6);
+                const coffeeMaterial = new THREE.MeshLambertMaterial({ color: 0x2F2F2F });
+                const coffeeMachine = new THREE.Mesh(coffeeGeometry, coffeeMaterial);
+                coffeeMachine.position.set(-12, 1.6, 0);
+                coffeeMachine.castShadow = true;
+                scene.add(coffeeMachine);
+
+                // Water cooler
+                const coolerGeometry = new THREE.CylinderGeometry(0.4, 0.4, 1.5, 8);
+                const coolerMaterial = new THREE.MeshLambertMaterial({ color: 0x4682B4 });
+                const cooler = new THREE.Mesh(coolerGeometry, coolerMaterial);
+                cooler.position.set(12, 0.75, 0);
+                cooler.castShadow = true;
+                scene.add(cooler);
+
+                // Lockers
+ 
+            }
+
+            function createWhiteboards() {
+                const subjects = ['Math', 'English', 'Science', 'History'];
+                const positions = [
+                    { x: -12, y: 6, z: -16, rot: 0 },
+                    { x: 12, y: 6, z: -16, rot: 0 },
+                    { x: -16, y: 6, z: -8, rot: Math.PI/2 },
+                    { x: 16, y: 6, z: 8, rot: -Math.PI/2 }
+                ];
+
+                positions.forEach((pos, index) => {
+                    const boardGeometry = new THREE.PlaneGeometry(4, 2.5);
+                    const boardMaterial = new THREE.MeshLambertMaterial({ color: 0xF5F5F5 });
+                    const board = new THREE.Mesh(boardGeometry, boardMaterial);
+                    board.position.set(pos.x, pos.y, pos.z);
+                    board.rotation.y = pos.rot;
+                    scene.add(board);
+
+                    // Board frame
+                    const frameGeometry = new THREE.BoxGeometry(4.2, 2.7, 0.1);
+                    const frameMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+                    const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+                    frame.position.copy(board.position);
+                    frame.position.z -= 0.05;
+                    frame.rotation.y = pos.rot;
+                    scene.add(frame);
+                });
+            }
+
+            function createBookShelves() {
+                const shelfPositions = [
+                    { x: -16, z: 8 },
+                    { x: 16, z: -8 },
+                    { x: 8, z: 16 },
+                    { x: -8, z: 16 }
+                ];
+
+                shelfPositions.forEach(pos => {
+                    const shelfGroup = new THREE.Group();
+                    
+                    // Shelf structure
+                    const shelfGeometry = new THREE.BoxGeometry(3, 4, 0.8);
+                    const shelfMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                    const shelf = new THREE.Mesh(shelfGeometry, shelfMaterial);
+                    shelf.position.set(0, 2, 0);
+                    shelfGroup.add(shelf);
+
+                    // Books
+                    for (let i = 0; i < 15; i++) {
+                        const bookGeometry = new THREE.BoxGeometry(0.15, 0.8, 0.6);
+                        const bookMaterial = new THREE.MeshLambertMaterial({ 
+                            color: new THREE.Color().setHSL(Math.random(), 0.8, 0.6) 
+                        });
+                        const book = new THREE.Mesh(bookGeometry, bookMaterial);
+                        book.position.set(
+                            -1.4 + (i % 5) * 0.3,
+                            1.2 + Math.floor(i / 5) * 0.9,
+                            0.35
+                        );
+                        shelfGroup.add(book);
+                    }
+
+                    shelfGroup.position.set(pos.x, 0, pos.z);
+                    scene.add(shelfGroup);
+                });
+            }
+
+            function createOfficeChairs() {
+                const chairPositions = [
+                    { x: -3, z: 2 }, { x: 3, z: 2 },
+                    { x: -3, z: -2 }, { x: 3, z: -2 },
+                    { x: 0, z: 3 }, { x: 0, z: -3 }
+                ];
+
+                chairPositions.forEach(pos => {
+                    const chairGroup = new THREE.Group();
+                    
+                    // Chair seat
+                    const seatGeometry = new THREE.CylinderGeometry(0.8, 0.8, 0.1, 8);
+                    const seatMaterial = new THREE.MeshLambertMaterial({ color: 0x8B0000 });
+                    const seat = new THREE.Mesh(seatGeometry, seatMaterial);
+                    seat.position.y = 1;
+                    chairGroup.add(seat);
+
+                    // Chair back
+                    const backGeometry = new THREE.BoxGeometry(1.5, 1.5, 0.1);
+                    const backMaterial = new THREE.MeshLambertMaterial({ color: 0x8B0000 });
+                    const back = new THREE.Mesh(backGeometry, backMaterial);
+                    back.position.set(0, 1.8, -0.7);
+                    chairGroup.add(back);
+
+                    // Chair legs
+                    for (let i = 0; i < 5; i++) {
+                        const legGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1, 8);
+                        const legMaterial = new THREE.MeshLambertMaterial({ color: 0x2F2F2F });
+                        const leg = new THREE.Mesh(legGeometry, legMaterial);
+                        leg.position.set(
+                            Math.cos(i * Math.PI * 2 / 5) * 0.6,
+                            0.5,
+                            Math.sin(i * Math.PI * 2 / 5) * 0.6
+                        );
+                        chairGroup.add(leg);
+                    }
+
+                    chairGroup.position.set(pos.x, 0, pos.z);
+                    chairGroup.castShadow = true;
+                    scene.add(chairGroup);
+                });
+            }
+
+            function createNoticeBoard() {
+                const boardGeometry = new THREE.PlaneGeometry(6, 4);
+                const boardMaterial = new THREE.MeshLambertMaterial({ color: 0xDEB887 });
+                const board = new THREE.Mesh(boardGeometry, boardMaterial);
+                board.position.set(0, 6, 16);
+                scene.add(board);
+
+                // Add some notices
+                for (let i = 0; i < 8; i++) {
+                    const noticeGeometry = new THREE.PlaneGeometry(1, 0.7);
+                    const noticeMaterial = new THREE.MeshLambertMaterial({ 
+                        color: new THREE.Color().setHSL(Math.random(), 0.3, 0.9) 
+                    });
+                    const notice = new THREE.Mesh(noticeGeometry, noticeMaterial);
+                    notice.position.set(
+                        -2 + (i % 4) * 1.2,
+                        5.5 + Math.floor(i / 4) * 1.2,
+                        16.01
+                    );
+                    scene.add(notice);
+                }
             }
 
             function createPlayer() {
-                // Simple player representation
-                const playerGeometry = new THREE.BoxGeometry(1, 2, 1);
-                const playerMaterial = new THREE.MeshLambertMaterial({ color: 0x0066CC });
+                const playerGeometry = new THREE.BoxGeometry(0.8, 1.8, 0.8);
+                const playerMaterial = new THREE.MeshLambertMaterial({ color: 0x00FF00 });
                 player = new THREE.Mesh(playerGeometry, playerMaterial);
-                player.position.set(0, 1, 5);
+                player.position.set(0, 0.9, 0);
                 player.castShadow = true;
                 scene.add(player);
+
+                camera.position.set(0, 2, 5);
+                camera.lookAt(0, 1, 0);
             }
 
             function createTeachers() {
-                Object.entries(teacherData).forEach(([name, data]) => {
-                    // Create teacher mesh
-                    const teacherGeometry = new THREE.BoxGeometry(1, 2, 1);
-                    const teacherMaterial = new THREE.MeshLambertMaterial({ color: data.color });
-                    const teacher = new THREE.Mesh(teacherGeometry, teacherMaterial);
-                    teacher.position.set(data.position.x, 1, data.position.z);
-                    teacher.castShadow = true;
-                    teacher.userData = { name, subject: data.subject, questions: data.questions };
-                    
-                    teachers.push(teacher);
-                    scene.add(teacher);
+                Object.keys(teacherData).forEach(name => {
+                    const data = teacherData[name];
+                    const teacherGroup = new THREE.Group();
+
+                    // Teacher body
+                    const bodyGeometry = new THREE.BoxGeometry(0.8, 1.8, 0.8);
+                    const bodyMaterial = new THREE.MeshLambertMaterial({ color: data.color });
+                    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                    body.position.y = 0.9;
+                    teacherGroup.add(body);
+
+                    // Teacher head
+                    const headGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+                    const headMaterial = new THREE.MeshLambertMaterial({ color: 0xFFDBAC });
+                    const head = new THREE.Mesh(headGeometry, headMaterial);
+                    head.position.y = 2.1;
+                    teacherGroup.add(head);
+
+                    // Name tag
+                    const nameGeometry = new THREE.PlaneGeometry(2, 0.5);
+                    const nameMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+                    const nameTag = new THREE.Mesh(nameGeometry, nameMaterial);
+                    nameTag.position.set(0, 2.8, 0);
+                    teacherGroup.add(nameTag);
+
+                    // Teacher desk
+                    const deskGeometry = new THREE.BoxGeometry(2, 0.1, 1);
+                    const deskMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                    const desk = new THREE.Mesh(deskGeometry, deskMaterial);
+                    desk.position.set(0, 1, 1.2);
+                    teacherGroup.add(desk);
+
+                    teacherGroup.position.set(data.position.x, 0, data.position.z);
+                    teacherGroup.castShadow = true;
+                    teacherGroup.userData = { name, subject: data.subject };
+                    scene.add(teacherGroup);
+                    teachers.push(teacherGroup);
                 });
             }
 
             function setupControls() {
-                // Keyboard events
-                document.addEventListener('keydown', (event) => {
-                    keys[event.code] = true;
-                    
-                    if (event.code === 'KeyE' && currentTeacher) {
-                        startQuiz(currentTeacher);
+                document.addEventListener('keydown', (e) => {
+                    keys[e.key.toLowerCase()] = true;
+                    if (e.key.toLowerCase() === 'e' && currentTeacher) {
+                        showChapterSelection();
                     }
                 });
 
-                document.addEventListener('keyup', (event) => {
-                    keys[event.code] = false;
+                document.addEventListener('keyup', (e) => {
+                    keys[e.key.toLowerCase()] = false;
                 });
 
-                // Window resize
+                document.addEventListener('mousedown', (e) => {
+                    isMouseDown = true;
+                });
+
+                document.addEventListener('mouseup', (e) => {
+                    isMouseDown = false;
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (isMouseDown) {
+                        cameraRotation.y -= e.movementX * 0.002;
+                        cameraRotation.x -= e.movementY * 0.002;
+                        cameraRotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, cameraRotation.x));
+                    }
+                });
+
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
@@ -571,99 +1146,64 @@
                 });
 
                 // Quiz controls
+                document.getElementById('startChapterQuiz').addEventListener('click', startQuiz);
+                document.getElementById('cancelChapterSelection').addEventListener('click', hideChapterSelection);
                 document.getElementById('submitAnswer').addEventListener('click', submitAnswer);
                 document.getElementById('nextQuestion').addEventListener('click', nextQuestion);
                 document.getElementById('closeQuiz').addEventListener('click', closeQuiz);
             }
 
-            function updatePlayer() {
-                const moveSpeed = 0.1;
-                const rotSpeed = 0.02;
-
-                // Movement
-                if (keys['KeyW']) {
-                    player.position.z -= moveSpeed;
-                }
-                if (keys['KeyS']) {
-                    player.position.z += moveSpeed;
-                }
-                if (keys['KeyA']) {
-                    player.position.x -= moveSpeed;
-                }
-                if (keys['KeyD']) {
-                    player.position.x += moveSpeed;
-                }
-
-                // Rotation
-                if (keys['ArrowLeft']) {
-                    player.rotation.y += rotSpeed;
-                }
-                if (keys['ArrowRight']) {
-                    player.rotation.y -= rotSpeed;
-                }
-
-                // Boundary limits
-                player.position.x = Math.max(-14, Math.min(14, player.position.x));
-                player.position.z = Math.max(-14, Math.min(14, player.position.z));
-
-                // Update camera to follow player
-                camera.position.x = player.position.x;
-                camera.position.z = player.position.z;
-                camera.rotation.y = player.rotation.y;
-            }
-
-            function checkTeacherInteraction() {
-                let nearestTeacher = null;
-                let minDistance = Infinity;
-
-                teachers.forEach(teacher => {
-                    const distance = player.position.distanceTo(teacher.position);
-                    if (distance < 4 && distance < minDistance) {
-                        minDistance = distance;
-                        nearestTeacher = teacher;
-                    }
+            function showChapterSelection() {
+                const teacherName = currentTeacher.userData.name;
+                const chapters = Object.keys(teacherData[teacherName].chapters);
+                
+                document.getElementById('selectedTeacherName').textContent = teacherName;
+                document.getElementById('chapterList').innerHTML = '';
+                
+                chapters.forEach(chapter => {
+                    const chapterDiv = document.createElement('div');
+                    chapterDiv.className = 'chapter-item';
+                    chapterDiv.textContent = chapter;
+                    chapterDiv.addEventListener('click', () => selectChapter(chapter));
+                    document.getElementById('chapterList').appendChild(chapterDiv);
                 });
-
-                if (nearestTeacher !== currentTeacher) {
-                    currentTeacher = nearestTeacher;
-                    updateUI();
-                }
+                
+                document.getElementById('chapterSelection').style.display = 'block';
             }
 
-            function updateUI() {
-                const prompt = document.getElementById('interactionPrompt');
-                const teacherNameSpan = document.getElementById('teacherName');
-                const teacherSubjectSpan = document.getElementById('teacherSubject');
-                const currentTeacherSpan = document.getElementById('currentTeacher');
-
-                if (currentTeacher) {
-                    teacherNameSpan.textContent = currentTeacher.userData.name;
-                    teacherSubjectSpan.textContent = currentTeacher.userData.subject;
-                    currentTeacherSpan.textContent = currentTeacher.userData.name;
-                    prompt.style.display = 'block';
-                } else {
-                    prompt.style.display = 'none';
-                    currentTeacherSpan.textContent = 'None';
-                }
+            function selectChapter(chapter) {
+                selectedChapter = chapter;
+                document.querySelectorAll('.chapter-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                event.target.classList.add('selected');
             }
 
-            function startQuiz(teacher) {
-                currentQuiz = [...teacher.userData.questions];
+            function hideChapterSelection() {
+                document.getElementById('chapterSelection').style.display = 'none';
+                selectedChapter = null;
+            }
+
+            function startQuiz() {
+                if (!selectedChapter) {
+                    alert('Please select a chapter first!');
+                    return;
+                }
+
+                const teacherName = currentTeacher.userData.name;
+                currentQuiz = [...teacherData[teacherName].chapters[selectedChapter]];
                 currentQuestionIndex = 0;
                 score = 0;
-                selectedAnswer = null;
+                
+                hideChapterSelection();
                 document.getElementById('questionModal').style.display = 'block';
                 showQuestion();
             }
 
             function showQuestion() {
-                if (currentQuestionIndex >= currentQuiz.length) {
-                    showFinalScore();
-                    return;
-                }
-
                 const question = currentQuiz[currentQuestionIndex];
-                document.getElementById('questionText').textContent = `Question ${currentQuestionIndex + 1}/10: ${question.question}`;
+                document.getElementById('questionText').textContent = `${currentQuestionIndex + 1}. ${question.question}`;
+                document.getElementById('score').textContent = `Score: ${score}/${currentQuiz.length}`;
                 
                 const optionsContainer = document.getElementById('optionsContainer');
                 optionsContainer.innerHTML = '';
@@ -672,22 +1212,20 @@
                     const optionDiv = document.createElement('div');
                     optionDiv.className = 'option';
                     optionDiv.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
-                    optionDiv.onclick = () => selectOption(index);
+                    optionDiv.addEventListener('click', () => selectOption(index));
                     optionsContainer.appendChild(optionDiv);
                 });
-
+                
                 document.getElementById('submitAnswer').style.display = 'inline-block';
                 document.getElementById('nextQuestion').style.display = 'none';
                 document.getElementById('closeQuiz').style.display = 'none';
-                document.getElementById('score').textContent = `Score: ${score}/10`;
                 selectedAnswer = null;
             }
 
             function selectOption(index) {
-                const options = document.querySelectorAll('.option');
-                options.forEach(option => option.classList.remove('selected'));
-                options[index].classList.add('selected');
                 selectedAnswer = index;
+                document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+                document.querySelectorAll('.option')[index].classList.add('selected');
             }
 
             function submitAnswer() {
@@ -699,21 +1237,22 @@
                 const question = currentQuiz[currentQuestionIndex];
                 const options = document.querySelectorAll('.option');
                 
-                options.forEach((option, index) => {
-                    if (index === question.correct) {
-                        option.classList.add('correct');
-                    } else if (index === selectedAnswer && index !== question.correct) {
-                        option.classList.add('incorrect');
-                    }
-                });
-
                 if (selectedAnswer === question.correct) {
                     score++;
+                    options[selectedAnswer].classList.add('correct');
+                } else {
+                    options[selectedAnswer].classList.add('incorrect');
+                    options[question.correct].classList.add('correct');
                 }
-
+                
                 document.getElementById('submitAnswer').style.display = 'none';
-                document.getElementById('nextQuestion').style.display = 'inline-block';
-                document.getElementById('score').textContent = `Score: ${score}/10`;
+                
+                if (currentQuestionIndex < currentQuiz.length - 1) {
+                    document.getElementById('nextQuestion').style.display = 'inline-block';
+                } else {
+                    document.getElementById('closeQuiz').style.display = 'inline-block';
+                    showQuizResults();
+                }
             }
 
             function nextQuestion() {
@@ -721,43 +1260,146 @@
                 showQuestion();
             }
 
-            function showFinalScore() {
-                const percentage = Math.round((score / 10) * 100);
-                document.getElementById('questionContainer').innerHTML = `
-                    <h2>Quiz Complete!</h2>
-                    <p style="font-size: 24px; color: #28a745;">Final Score: ${score}/10</p>
-                    <p style="font-size: 20px;">Percentage: ${percentage}%</p>
-                    <p style="font-size: 16px; color: #666;">
-                        ${percentage >= 80 ? 'Excellent work!' : 
-                          percentage >= 60 ? 'Good job!' : 
-                          percentage >= 40 ? 'Keep practicing!' : 'Need more study!'}
-                    </p>
+            function showQuizResults() {
+                const percentage = (score / currentQuiz.length) * 100;
+                const teacherName = currentTeacher.userData.name;
+                
+                totalScore += score;
+                quizzesTaken++;
+                
+                document.getElementById('currentScore').textContent = totalScore;
+                document.getElementById('quizzesTaken').textContent = quizzesTaken;
+                
+                let feedback = '';
+                let reactionClass = '';
+                let teacherReaction = '';
+                
+                if (percentage >= 80) {
+                    feedback = `Excellent! You scored ${score}/${currentQuiz.length} (${percentage.toFixed(1)}%)`;
+                    reactionClass = 'feedback-excellent';
+                    teacherReaction = `${teacherName} is very impressed! "Outstanding work! You've mastered this chapter brilliantly!"`;
+                } else if (percentage >= 60) {
+                    feedback = `Good job! You scored ${score}/${currentQuiz.length} (${percentage.toFixed(1)}%)`;
+                    reactionClass = 'feedback-good';
+                    teacherReaction = `${teacherName} nods approvingly. "Well done! You have a solid understanding of the material."`;
+                } else if (percentage >= 50) {
+                    feedback = `You passed! You scored ${score}/${currentQuiz.length} (${percentage.toFixed(1)}%)`;
+                    reactionClass = 'feedback-needs-improvement';
+                    teacherReaction = `${teacherName} looks concerned. "You need to study more. Come see me during office hours."`;
+                } else {
+                    feedback = `You failed! You scored ${score}/${currentQuiz.length} (${percentage.toFixed(1)}%)`;
+                    reactionClass = 'feedback-poor';
+                    teacherReaction = `${teacherName} is very disappointed and stern. "This is unacceptable! You need serious remedial work. I'm scheduling extra classes for you immediately!"`;
+                    
+                    // Add dramatic visual effect for failure
+                    document.body.style.animation = 'shake 0.5s';
+                    setTimeout(() => {
+                        document.body.style.animation = '';
+                    }, 500);
+                }
+                
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `performance-feedback ${reactionClass}`;
+                resultDiv.innerHTML = `
+                    <h3>${feedback}</h3>
+                    <div class="teacher-reaction">${teacherReaction}</div>
                 `;
                 
-                const closeButton = document.createElement('button');
-                closeButton.textContent = 'Close Quiz';
-                closeButton.onclick = closeQuiz;
-                document.getElementById('questionContainer').appendChild(closeButton);
-                
-                // Update total score
-                totalScore += score;
-                document.getElementById('currentScore').textContent = totalScore;
+                document.getElementById('questionContainer').appendChild(resultDiv);
             }
 
             function closeQuiz() {
                 document.getElementById('questionModal').style.display = 'none';
-                currentTeacher = null;
-                updateUI();
+                selectedChapter = null;
             }
 
             function animate() {
                 requestAnimationFrame(animate);
                 
-                updatePlayer();
-                checkTeacherInteraction();
+                // Player movement with smoother controls
+                const moveSpeed = 0.15;
+                let direction = new THREE.Vector3();
+                
+                if (keys['w']) direction.z -= 1;
+                if (keys['s']) direction.z += 1;
+                if (keys['a']) direction.x -= 1;
+                if (keys['d']) direction.x += 1;
+                
+                // Normalize direction for consistent speed
+                if (direction.length() > 0) {
+                    direction.normalize();
+                    player.position.x += direction.x * moveSpeed;
+                    player.position.z += direction.z * moveSpeed;
+                }
+                
+                // Camera follows player with rotation
+                camera.position.x = player.position.x;
+                camera.position.z = player.position.z + 5;
+                camera.position.y = player.position.y + 2;
+                
+                // Apply camera rotation
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = cameraRotation.y;
+                camera.rotation.x = cameraRotation.x;
+                
+                // Arrow key camera rotation
+                if (keys['arrowleft']) cameraRotation.y += 0.02;
+                if (keys['arrowright']) cameraRotation.y -= 0.02;
+                
+                // Keep player within bounds
+                player.position.x = Math.max(-16, Math.min(16, player.position.x));
+                player.position.z = Math.max(-16, Math.min(16, player.position.z));
+                
+                // Check teacher proximity
+                checkTeacherProximity();
+                
+                // Animate ceiling fans
+                scene.children.forEach(child => {
+                    if (child.userData && child.userData.isFan) {
+                        child.rotation.y += 0.05;
+                    }
+                });
                 
                 renderer.render(scene, camera);
             }
+
+            function checkTeacherProximity() {
+                let nearestTeacher = null;
+                let minDistance = Infinity;
+                
+                teachers.forEach(teacher => {
+                    const distance = player.position.distanceTo(teacher.position);
+                    if (distance < 3 && distance < minDistance) {
+                        minDistance = distance;
+                        nearestTeacher = teacher;
+                    }
+                });
+                
+                if (nearestTeacher !== currentTeacher) {
+                    currentTeacher = nearestTeacher;
+                    
+                    if (currentTeacher) {
+                        document.getElementById('currentTeacher').textContent = currentTeacher.userData.name;
+                        document.getElementById('teacherName').textContent = currentTeacher.userData.name;
+                        document.getElementById('teacherSubject').textContent = currentTeacher.userData.subject;
+                        document.getElementById('interactionPrompt').style.display = 'block';
+                    } else {
+                        document.getElementById('currentTeacher').textContent = 'None';
+                        document.getElementById('interactionPrompt').style.display = 'none';
+                    }
+                }
+            }
+
+            // Add CSS animation for shake effect
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-5px); }
+                    75% { transform: translateX(5px); }
+                }
+            `;
+            document.head.appendChild(style);
 
             // Start the game
             init();
