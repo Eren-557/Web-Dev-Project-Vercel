@@ -179,3 +179,33 @@ addEventListener("keydown", (event)=>{
     }
 })
 
+//phone
+let touchStartX = 0;
+let touchStartY = 0;
+
+addEventListener("touchstart", (event) => {
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
+}, { passive: true });
+
+addEventListener("touchend", (event) => {
+    const touchEndX = event.changedTouches[0].clientX;
+    const touchEndY = event.changedTouches[0].clientY;
+
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+
+    const minSwipeDistance = 20; // ignore tiny accidental touches
+
+    if (Math.abs(diffX) < minSwipeDistance && Math.abs(diffY) < minSwipeDistance) {
+        return; // too small to count as a swipe
+    }
+
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+        // horizontal swipe
+        direction = diffX > 0 ? "right" : "left";
+    } else {
+        // vertical swipe
+        direction = diffY > 0 ? "down" : "up";
+    }
+}, { passive: true });
