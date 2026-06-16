@@ -10,6 +10,9 @@ if (window.innerWidth < 768) {
     blockWidth = 50; 
 }
 
+// sound effects
+const hiss = new Audio('assets/hiss.mp3');
+const bgMusic = new Audio('assets/bg-music.mp3');
 
 // modal
 const modal = document.querySelector(".modal");
@@ -78,7 +81,8 @@ function timerFunction() {
 
 
 function render() {
-
+    bgMusic.play()
+    bgMusic.loop = true;
     let head = null;
 
     blocks[`${food.x}-${food.y}`].classList.add('food')
@@ -102,6 +106,7 @@ function render() {
 
     //game over logic
     if (head.x >= rows || head.x < 0 || head.y >= cols || head.y < 0 ) {
+        bgMusic.pause()
         clearInterval(intervalId)
         clearInterval(timerintervalId)
 
@@ -124,6 +129,7 @@ function render() {
 
     // food consume logic
     if (head.x === food.x && head.y === food.y) {
+        hiss.play()
         blocks[`${food.x}-${food.y}`].classList.remove('food')
         food = {x: Math.floor(Math.random()*rows), y: Math.floor(Math.random()*cols)}
 
@@ -215,3 +221,24 @@ addEventListener("keydown",(evt)=>{
     }
     
 })
+
+//phone logic (ai)
+document.addEventListener('touchend', (e) => {
+  const touchEndX = e.changedTouches[0].clientX;
+  const touchEndY = e.changedTouches[0].clientY;
+
+  const deltaX = touchEndX - touchStartX;
+  const deltaY = touchEndY - touchStartY;
+
+  const minSwipeDistance = 30;
+
+  if (Math.abs(deltaX) < minSwipeDistance && Math.abs(deltaY) < minSwipeDistance) {
+    return;
+  }
+
+  if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    direction = deltaX > 0 ? 'right' : 'left';
+  } else {
+    direction = deltaY > 0 ? 'down' : 'up';
+  }
+}, { passive: true });
