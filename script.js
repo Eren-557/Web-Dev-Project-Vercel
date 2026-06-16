@@ -223,22 +223,32 @@ addEventListener("keydown",(evt)=>{
 })
 
 //phone logic (ai)
-document.addEventListener('touchend', (e) => {
-  const touchEndX = e.changedTouches[0].clientX;
-  const touchEndY = e.changedTouches[0].clientY;
+let touchStartX = 0;
+let touchStartY = 0;
 
-  const deltaX = touchEndX - touchStartX;
-  const deltaY = touchEndY - touchStartY;
+addEventListener("touchstart", (event) => {
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
+}, { passive: true });
 
-  const minSwipeDistance = 30;
+addEventListener("touchend", (event) => {
+    const touchEndX = event.changedTouches[0].clientX;
+    const touchEndY = event.changedTouches[0].clientY;
 
-  if (Math.abs(deltaX) < minSwipeDistance && Math.abs(deltaY) < minSwipeDistance) {
-    return;
-  }
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
 
-  if (Math.abs(deltaX) > Math.abs(deltaY)) {
-    direction = deltaX > 0 ? 'right' : 'left';
-  } else {
-    direction = deltaY > 0 ? 'down' : 'up';
-  }
+    const minSwipeDistance = 20; // ignore tiny accidental touches
+
+    if (Math.abs(diffX) < minSwipeDistance && Math.abs(diffY) < minSwipeDistance) {
+        return; // too small to count as a swipe
+    }
+
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+        // horizontal swipe
+        direction = diffX > 0 ? "right" : "left";
+    } else {
+        // vertical swipe
+        direction = diffY > 0 ? "down" : "up";
+    }
 }, { passive: true });
